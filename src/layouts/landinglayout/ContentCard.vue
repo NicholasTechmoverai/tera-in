@@ -8,18 +8,26 @@
                     <n-icon :component="Envelope" />
                 </template>
             </n-input>
-            <n-button @click="submitEmail">Notify Me</n-button>
+            <n-button type="primary" :loading="loading" @click="submitEmail">Notify Me</n-button>
         </div>
     </n-card>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { Envelope } from '@vicons/fa';
+import { ref } from 'vue'
+import { Envelope } from '@vicons/fa'
 
-const email = ref('');
 
-const submitEmail = () => {
-    console.log('Email submitted:', email.value);
-};
+const email = ref<string>('')
+const loading = ref(false)
+
+
+const submitEmail = (): void => {
+  loading.value = true
+  console.log('📧 Email submitted:', email.value)
+
+  setTimeout(() => {
+    loading.value = false
+  }, 1000)
+}
 </script>
