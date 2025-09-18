@@ -40,31 +40,32 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VUE_DIST_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "dist"))
 
 # Mount Vue static assets (JS, CSS, images, fonts…)
-if os.path.exists(VUE_DIST_DIR):
-    app.mount(
-        "/static",
-        StaticFiles(directory=os.path.join(VUE_DIST_DIR, "static")),
-        name="static",
-    )
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(VUE_DIST_DIR, "static")),
+    name="static",
+)
 
-    # Serve Vue index.html at root
-    @app.get("/", include_in_schema=False)
-    async def serve_root():
-        return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
+# Serve Vue index.html at root
+@app.get("/", include_in_schema=False)
+async def serve_root():
+    return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
 
-    # Catch-all route for Vue Router (history mode)
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_vue(full_path: str):
-        file_path = os.path.join(VUE_DIST_DIR, full_path)
+# Catch-all route for Vue Router (history mode)
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_vue(full_path: str):
+    file_path = os.path.join(VUE_DIST_DIR, full_path)
 
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
+    # Serve file if it exists
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
 
-        return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
+    # Otherwise return index.html (SPA fallback)
+    return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
 
-application = app
 
-# Run with `python app.py`
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
+
+
+# uvicorn app:zed_app --reload
+# uvicorn app:zed_app --reload --host 0.0.0.0 --port 8007
+# cloudflared tunnel --url http://localhost:8000
