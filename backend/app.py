@@ -62,7 +62,6 @@ if os.path.exists(VUE_DIST_DIR):
 
         return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
 
-# Expose WSGI/ASGI callable for hosting panels
 application = app
 
 # Run with `python app.py`
