@@ -68,4 +68,10 @@ async def serve_vue(full_path: str):
 
 # uvicorn app:zed_app --reload
 # uvicorn app:zed_app --reload --host 0.0.0.0 --port 8007
-# cloudflared tunnel --url http://localhost:8000
+# cloudflared tunnel --url http://localhost:8000# Run with `python app.py`
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", reload=False)
+
+
+
