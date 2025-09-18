@@ -1,326 +1,79 @@
 <template>
-  <div class="scene-container">
-    <canvas ref="canvasRef" class="three-canvas"></canvas>
-    
-    <div class="controls-panel">
-      <h2>3D Text Controls</h2>
-      
-      <div class="control-group">
-        <label for="rotationSpeed">Rotation Speed</label>
-        <input 
-          type="range" 
-          id="rotationSpeed" 
-          v-model="rotationSpeed" 
-          min="0" 
-          max="0.05" 
-          step="0.001"
-        >
-        <span class="value">{{ rotationSpeed }}</span>
-      </div>
-      
-      <div class="control-group">
-        <label for="textColor">Text Color</label>
-        <input 
-          type="color" 
-          id="textColor" 
-          v-model="textColor"
-        >
-      </div>
-      
-      <div class="control-group">
-        <label for="bevelSize">Bevel Size</label>
-        <input 
-          type="range" 
-          id="bevelSize" 
-          v-model="bevelSize" 
-          min="0" 
-          max="0.1" 
-          step="0.01"
-        >
-        <span class="value">{{ bevelSize }}</span>
-      </div>
-      
-      <div class="control-group">
-        <label for="textContent">Text Content</label>
-        <input 
-          type="text" 
-          id="textContent" 
-          v-model="textContent"
-        >
-      </div>
-    </div>
-    
-    <div v-if="loading" class="loading-overlay">
-      <div class="spinner"></div>
-      <p>Loading 3D text...</p>
+  <div class="w-screen h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+    <!-- 3D Canvas Background -->
+    <canvas ref="canvasRef" class="absolute inset-0 -z-1"></canvas>
+
+    <!-- Content -->
+    <div class="relative z-10 text-center">
+      <h1 class="text-5xl font-bold mb-4">Welcome to Tera-In</h1>
+      <p class="text-lg mb-6 opacity-80">
+        A modern landing page built with Vue 3, Naive UI, UnoCSS & Three.js 🚀
+      </p>
+
+      <n-button type="primary" size="large" @click="goNext">
+        Get Started
+      </n-button>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, watch, onUnmounted } from 'vue';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import * as THREE from "three";
+import { useMessage } from "naive-ui";
 
-const canvasRef = ref(null);
-const rotationSpeed = ref(0.01);
-const textColor = ref('#00aaff');
-const bevelSize = ref(0.03);
-const textContent = ref('Hello World');
-const loading = ref(true);
+// refs
+const canvasRef = ref<HTMLCanvasElement | null>(null);
+const message = useMessage();
 
-let scene, camera, renderer, controls, textMesh;
-let animationId = null;
+// navigation or CTA
+const goNext = () => {
+  message.success("You clicked Get Started!");
+};
 
+// 3D background setup
 onMounted(() => {
-  initScene();
-  createText();
-  setupEventListeners();
+  if (!canvasRef.value) return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.value });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  // Add geometry (rotating cube)
+  const geometry = new THREE.BoxGeometry();
+  const material = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
+  const cube = new THREE.Mesh(geometry, material);
+  scene.add(cube);
+
+  camera.position.z = 3;
+
+  const animate = () => {
+    requestAnimationFrame(animate);
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.01;
+    renderer.render(scene, camera);
+  };
+
   animate();
-});
 
-onUnmounted(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId);
-  }
-  
-  if (controls) {
-    controls.dispose();
-  }
-  
-  if (renderer) {
-    renderer.dispose();
-  }
-});
-
-function initScene() {
-  // Create scene
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a0a20);
-  
-  // Create camera
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.z = 5;
-  
-  // Create renderer
-  renderer = new THREE.WebGLRenderer({ 
-    canvas: canvasRef.value, 
-    antialias: true 
+  // Resize handling
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
   });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  
-  // Add lights
-  const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-  scene.add(ambientLight);
-  
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(1, 1, 1);
-  scene.add(directionalLight);
-  
-  const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
-  backLight.position.set(-1, -1, -1);
-  scene.add(backLight);
-  
-  // Add controls
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-}
-
-function createText() {
-  // Remove existing text if any
-  if (textMesh) {
-    scene.remove(textMesh);
-  }
-  
-  const loader = new FontLoader();
-  
-  // Load a font
-  loader.load('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/fonts/helvetiker_bold.typeface.json', (font) => {
-    const geometry = new TextGeometry(textContent.value, {
-      font: font,
-      size: 0.8,
-      height: 0.5,
-      curveSegments: 12,
-      bevelEnabled: true,
-      bevelThickness: bevelSize.value,
-      bevelSize: bevelSize.value,
-      bevelOffset: 0,
-      bevelSegments: 5
-    });
-    
-    geometry.computeBoundingBox();
-    geometry.center();
-    
-    const material = new THREE.MeshPhongMaterial({ 
-      color: textColor.value,
-      shininess: 100,
-      specular: 0x222222
-    });
-    
-    textMesh = new THREE.Mesh(geometry, material);
-    scene.add(textMesh);
-    
-    loading.value = false;
-  });
-}
-
-function setupEventListeners() {
-  window.addEventListener('resize', onWindowResize);
-}
-
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function animate() {
-  animationId = requestAnimationFrame(animate);
-  
-  if (textMesh) {
-    textMesh.rotation.x += rotationSpeed.value;
-    textMesh.rotation.y += rotationSpeed.value;
-  }
-  
-  controls.update();
-  renderer.render(scene, camera);
-}
-
-// Watchers for reactive properties
-watch(textColor, (newColor) => {
-  if (textMesh) {
-    textMesh.material.color.set(newColor);
-  }
-});
-
-watch(bevelSize, () => {
-  loading.value = true;
-  createText();
-});
-
-watch(textContent, () => {
-  loading.value = true;
-  createText();
 });
 </script>
 
-<style scoped>
-.scene-container {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.three-canvas {
+<style>
+/* optional if you want smoother visuals */
+canvas {
   display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.controls-panel {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(10px);
-  padding: 20px;
-  border-radius: 12px;
-  color: white;
-  width: 300px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.controls-panel h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 1.5rem;
-  color: #00aaff;
-  text-align: center;
-}
-
-.control-group {
-  margin-bottom: 15px;
-}
-
-.control-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #cccccc;
-}
-
-.control-group input[type="range"] {
-  width: 100%;
-  margin-right: 10px;
-}
-
-.control-group input[type="color"] {
-  width: 100%;
-  height: 40px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.control-group input[type="text"] {
-  width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #444;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.value {
-  display: inline-block;
-  width: 40px;
-  text-align: right;
-  color: #00aaff;
-  font-weight: 600;
-}
-
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: rgba(10, 10, 32, 0.8);
-  color: white;
-  z-index: 10;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid rgba(255, 255, 255, 0.3);
-  border-top: 5px solid #00aaff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@media (max-width: 768px) {
-  .controls-panel {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    width: auto;
-  }
 }
 </style>

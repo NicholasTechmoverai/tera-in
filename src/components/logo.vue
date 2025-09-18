@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import { ImageOutline as ImageOutlineIcon } from '@vicons/ionicons5'
-import { site } from '../composables/index'
+import { site } from '../composables/index.js'
 
 
 </script>
